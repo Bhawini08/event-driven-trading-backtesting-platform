@@ -5,21 +5,14 @@ from .execution import ExecutionModel
 from .metrics import performance_metrics
 
 def walk_forward(prices: pd.DataFrame, strategy_factory, train=252, test=126, step=126, costs=None):
-    """Chronological OOS validation.
-
-    The training slice is used only as signal-history warmup. Portfolio cash and positions
-    remain untouched until the first test date, so OOS performance and trade diagnostics
-    contain no in-sample trading activity.
-    """
     rows=[]; costs=costs or ExecutionModel()
     for start in range(0,len(prices)-train-test+1,step):
         warmup=prices.iloc[start:start+train].copy()
         test_px=prices.iloc[start+train:start+train+test].copy()
         combined=pd.concat([warmup,test_px])
-        strat=strategy_factory()
         engine=BacktestEngine(
             combined,
-            strat,
+            strategy_factory(),
             execution=costs,
             trading_start=test_px.index[0],
         )
@@ -39,7 +32,7 @@ def walk_forward(prices: pd.DataFrame, strategy_factory, train=252, test=126, st
         })
     return pd.DataFrame(rows)
 
-def cost_sensitivity(prices, strategy_factory, grid=(0.5,1,2,5)):
+def cost_sensitivity(prices, strategy_factory, grid=(0.0,0.5,1,2,5)):
     rows=[]
     for bps in grid:
         ex=ExecutionModel(
@@ -51,3 +44,15 @@ def cost_sensitivity(prices, strategy_factory, grid=(0.5,1,2,5)):
         m=performance_metrics(curve.equity,trades)
         rows.append({"total_cost_bps":bps,**m})
     return pd.DataFrame(rows)
+
+def parameter_robustness(prices, strategy_builders: dict[str, callable]):
+    rows=[]
+    for label,builder in strategy_builders.items():
+        curve,trades=BacktestEngine(prices,builder()).run()
+        rows.append({"specification":label,**performance_metrics(curve.equity,trades)})
+    return pd.DataFrame(rows)
+
+def benchmark_metrics(prices: pd.DataFrame, symbol="SPY"):
+    px=prices[symbol].dropna()
+    equity=1_000_000*(px/px.iloc[0])
+    return performance_metrics(equity)
