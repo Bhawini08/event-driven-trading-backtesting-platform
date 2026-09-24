@@ -26,3 +26,4 @@ def test_walk_forward_is_chronological():
     wf=walk_forward(px,lambda:MomentumStrategy(30),train=252,test=63,step=63)
     assert len(wf)>0
     assert (wf.train_end < wf.test_start).all()
+    assert wf["annualized_return"].notna().all()
