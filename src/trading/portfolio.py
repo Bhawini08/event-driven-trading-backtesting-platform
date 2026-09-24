@@ -30,10 +30,15 @@ class Portfolio:
         if eq == 0: return 0.0
         return sum(q*self.last_prices.get(s,0.0) for s,q in self.positions.items()) / eq
 
-    def orders_from_targets(self, timestamp: pd.Timestamp, targets: dict[str,float], strategy: str) -> list[OrderEvent]:
+    def orders_from_targets(self, timestamp: pd.Timestamp, targets: dict[str,float], strategy: str, max_gross: float=1.0) -> list[OrderEvent]:
         eq = self.equity()
+        clean={s:float(w) for s,w in targets.items()}
+        gross=sum(abs(w) for w in clean.values())
+        if gross>max_gross and gross>0:
+            scale=max_gross/gross
+            clean={s:w*scale for s,w in clean.items()}
         orders=[]
-        for s,w in targets.items():
+        for s,w in clean.items():
             px=self.last_prices[s]
             desired = eq*w/px
             qty = desired-self.positions.get(s,0.0)
