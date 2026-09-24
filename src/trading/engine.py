@@ -17,9 +17,12 @@ class BacktestEngine:
                 targets=self.strategy.targets(self.prices.iloc[:i+1])
                 for order in self.portfolio.orders_from_targets(ts,targets,self.strategy.name):
                     self.portfolio.apply_fill(self.execution.fill(order,row[order.symbol]))
-            rows.append({"timestamp":ts,"equity":self.portfolio.equity(),
+            equity=self.portfolio.equity()
+            rows.append({"timestamp":ts,"equity":equity,
+                         "pnl":equity-self.portfolio.initial_cash,
                          "gross_exposure":self.portfolio.gross_exposure(),
                          "net_exposure":self.portfolio.net_exposure()})
         curve=pd.DataFrame(rows).set_index("timestamp")
+        curve["period_pnl"]=curve["equity"].diff().fillna(curve["equity"].iloc[0]-self.portfolio.initial_cash)
         trades=pd.DataFrame(self.portfolio.trade_log)
         return curve,trades
