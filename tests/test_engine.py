@@ -11,6 +11,8 @@ def test_engine_accounting_and_costs():
     curve,trades=BacktestEngine(px,MomentumStrategy(30),execution=ExecutionModel(1,2,3)).run()
     assert len(curve)==len(px)
     assert curve.equity.notna().all()
+    assert "pnl" in curve.columns and "period_pnl" in curve.columns
+    assert np.allclose(curve["pnl"],curve["equity"]-1_000_000)
     assert (trades.commission>=0).all() and (trades.slippage_cost>=0).all()
 
 def test_three_strategies_run():
