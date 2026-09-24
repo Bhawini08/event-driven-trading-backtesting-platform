@@ -62,7 +62,7 @@ class PairsStrategy:
         except Exception:
             coint_p=np.nan
         try:
-            adf_p=float(adfuller(spread,autolag="AIC")[1])
+            adf_p=float(adfuller(spread,autolag="AIC",result_object=False)[1])
         except Exception:
             adf_p=np.nan
         return {"beta":float(beta),"zscore":z,"cointegration_p":coint_p,"spread_adf_p":adf_p}
